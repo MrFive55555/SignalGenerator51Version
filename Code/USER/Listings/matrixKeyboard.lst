@@ -1,0 +1,124 @@
+C51 COMPILER V9.54   MATRIXKEYBOARD                                                        06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MATRIXKEYBOARD
+OBJECT MODULE PLACED IN ..\OBJ\matrixKeyboard.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE ..\HARDWARE\MatrixKeyboard\matrixKeyboard.c OMF2 OPTIMIZE(8,SPEED) BROWSE 
+                    -INCDIR(..\USER;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC)
+                    - DEBUG PRINT(.\Listings\matrixKeyboard.lst) TABS(2) OBJECT(..\OBJ\matrixKeyboard.obj)
+
+line level    source
+
+   1          #include "matrixKeyboard.h"
+   2          void delay_Matrix(u16 z){
+   3   1        u16 x,y;
+   4   1        for(x=z;x>0;x--){
+   5   2          for(y=144;y>0;y--);
+   6   2        }
+   7   1      }
+   8          
+   9          /**
+  10          *矩阵键盘：扫描法
+  11          */
+  12          u8 getMatrixKey(){
+  13   1      //逐列扫描
+  14   1        u8 key = 16;
+  15   1        P2 = 0xFF;
+  16   1        P2_0 = 0;  //消抖 
+  17   1        if(P2_4==0){delay_Matrix(20);while(P2_4==0);delay_Matrix(20);key=0;}
+  18   1        if(P2_5==0){delay_Matrix(20);while(P2_5==0);delay_Matrix(20);key=1;}
+  19   1        if(P2_6==0){delay_Matrix(20);while(P2_6==0);delay_Matrix(20);key=2;}
+  20   1        if(P2_7==0){delay_Matrix(20);while(P2_7==0);delay_Matrix(20);key=3;}
+  21   1        
+  22   1        P2 = 0xFF;
+  23   1        P2_1 = 0;  //消抖 
+  24   1        if(P2_4==0){delay_Matrix(20);while(P2_4==0);delay_Matrix(20);key=4;}
+  25   1        if(P2_5==0){delay_Matrix(20);while(P2_5==0);delay_Matrix(20);key=5;}
+  26   1        if(P2_6==0){delay_Matrix(20);while(P2_6==0);delay_Matrix(20);key=6;}
+  27   1        if(P2_7==0){delay_Matrix(20);while(P2_7==0);delay_Matrix(20);key=7;}
+  28   1        
+  29   1        P2 = 0xFF;
+  30   1        P2_2 = 0;  //消抖 
+  31   1        if(P2_4==0){delay_Matrix(20);while(P2_4==0);delay_Matrix(20);key=10;}
+  32   1        if(P2_5==0){delay_Matrix(20);while(P2_5==0);delay_Matrix(20);key=8;}
+  33   1        if(P2_6==0){delay_Matrix(20);while(P2_6==0);delay_Matrix(20);key=9;}
+  34   1        if(P2_7==0){delay_Matrix(20);while(P2_7==0);delay_Matrix(20);key=11;}
+  35   1        
+  36   1        P2 = 0xFF;
+  37   1        P2_3 = 0;  //消抖 
+  38   1        if(P2_4==0){delay_Matrix(20);while(P2_4==0);delay_Matrix(20);key=12;}
+  39   1        if(P2_5==0){delay_Matrix(20);while(P2_5==0);delay_Matrix(20);key=13;}
+  40   1        if(P2_6==0){delay_Matrix(20);while(P2_6==0);delay_Matrix(20);key=14;}
+  41   1        if(P2_7==0){delay_Matrix(20);while(P2_7==0);delay_Matrix(20);key=15;}
+  42   1        
+  43   1        return key;
+  44   1      }
+  45          /**
+  46          *矩阵键盘：线翻转法 有bug 有时候按键会检测多次
+  47          */
+  48          //static u8 longPress = 0; //长按标志
+  49          /*u8 getMatrixKey(){
+  50            
+  51            u8 key;//键值
+  52            u8 row,column; //行，列
+  53            u8 position; //坐标
+C51 COMPILER V9.54   MATRIXKEYBOARD                                                        06/17/2022 10:09:22 PAGE 2   
+
+  54            
+  55            //先列赋值为高电平
+  56            matrixKey = 0xf0;
+  57            if(!longPress&&matrixKey!=0xf0){
+  58              column = matrixKey;
+  59              delay_Matrix(5); //猜测是仿真bug 加延时 太快导致检测不到 （实物测试再修改）
+  60              //再行赋值为高电平
+  61              matrixKey = 0x0f;
+  62              row = matrixKey;
+  63              delay_Matrix(5)
+  64              position = row|column; //相或获得坐标
+  65              
+  66              switch(position){
+  67                case 0xee:key=0;break;
+  68                case 0xde:key=1;break;
+  69                case 0xbe:key=2;break;
+  70                case 0x7e:key=3;break;
+  71                case 0xed:key=4;break;
+  72                case 0xdd:key=5;break;
+  73                case 0xbd:key=6;break;
+  74                case 0x7d:key=7;break;
+  75                //这里有两个左右键 为了key值就是数字值 所以改变返回值
+  76                case 0xeb:key=10;break; //左
+  77                case 0xdb:key=8;break;
+  78                case 0xbb:key=9;break;
+  79                case 0x7b:key=11;break; //右
+  80                case 0xe7:key=12;break; //设置
+  81                case 0xd7:key=13;break; //波形
+  82                case 0xb7:key=14;break; //参数
+  83                case 0x77:key=15;break; //确认
+  84              }
+  85              longPress = 1;
+  86              return key;
+  87            }else if(matrixKey==0xf0){
+  88              longPress = 0;
+  89            }
+  90            return 16;
+  91          }*/
+  92          
+  93          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    283    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

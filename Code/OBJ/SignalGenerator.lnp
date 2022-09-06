@@ -1,0 +1,11 @@
+"..\OBJ\main.obj",
+"..\OBJ\SignalGeneratorUI.obj",
+"..\OBJ\matrixKeyboard.obj",
+"..\OBJ\nixieTube.obj",
+"..\OBJ\pcf8591.obj",
+"..\OBJ\IIC.obj",
+"..\OBJ\at24c02.obj",
+"..\OBJ\IICForAT.obj" 
+TO "..\OBJ\SignalGenerator" 
+
+PRINT(".\Listings\SignalGenerator.map") REMOVEUNUSED 

@@ -1,0 +1,1 @@
+"SignalGenerator.c" OPTIMIZE (8,SPEED) BROWSE INCDIR(..\USER;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG OBJECTEXTEND PRINT(.\Listings\SignalGenerator.lst) TABS (2) OBJECT(..\OBJ\SignalGenerator.obj)

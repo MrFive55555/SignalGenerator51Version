@@ -1,0 +1,461 @@
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE SIGNALGENERATOR
+OBJECT MODULE PLACED IN ..\OBJ\SignalGenerator.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE SignalGenerator.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\USER;..\HARDWARE\AT24
+                    -C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\SignalGenerator.lst) TABS(2) OBJECT(..\OBJ\SignalGenerator.obj)
+
+line level    source
+
+   1          #include "SignalGenerator.h"
+   2          /**最难写的就是业务代码了 写的想吐......
+   3          *信号发生器功能汇总 (精度极差)
+   4          *随听录:
+   5          *用力闭上眼睛 过不去的都过去
+   6          *更迭了时代 当时的明月换拨人看
+   7          *只盼归田卸甲 还能捧回你沏的茶
+   8          */
+   9          
+  10          //业务部分参数:
+  11          //对数码管显示信息的修改 无非就是对段码的修改 所以围绕以下数组展开编写
+  12          static u8 nixieTubeFormat[8]={0,0,0,10,10,10,0,0};//数码管格式化显示信息 控制段选信息 *业
+             -务的核心*
+  13          static u8 setValue = 0;//set键值
+  14          static char waveValue = -1;//wave键值
+  15          static u8 parameterValue; //参数值
+  16          static u8 flickerCount = 0;//闪烁计时值
+  17          static u8 flickerValue = 0; //闪烁更新值
+  18          static u8 flickerChange = 1; //闪烁切换
+  19          static char leftRightValue = 1; //左右移动键值 0左 1右
+  20          static char fourLeftRightValue = 1; //四格移动键值
+  21          static u8 selectParameterValue = 0; //是否在波形和参数的选择下按了移动键
+  22          static u8 errorCount = 0; //错误显示时间
+  23          static u8 errorFlag = 0; //错误标志
+  24          //数字位结构体
+  25          struct number{
+  26            u8 ge,shi,bai,qian;
+  27          }number; //numberber为结构体变量
+  28          
+  29          /**
+  30          *信号发生器 业务代码部分:
+  31          */
+  32          //键盘扫描
+  33          void keyboard(){
+  34   1        u8 key;
+  35   1        key = getMatrixKey();
+  36   1        if(key==12){ //设置
+  37   2          set();
+  38   2        }else if(setValue&&(key>=13&&key<=15)){ //设置之下的功能
+  39   2          switch(key){
+  40   3            case 13:selectWave();break;
+  41   3            case 14:selectParameter();break;
+  42   3            case 15:confirm();break;
+  43   3          }
+  44   2        }else if((key==10||key==11)&&selectParameterValue){ //左右键
+  45   2          moveKey(key);
+  46   2        }else if((flickerValue>=4&&flickerValue<=7)&&(key>=0&&key<=9)){ //输入数字
+  47   2          //直接将键盘值传入inputnumber函数当数字使用
+  48   2          inputNumber(key);
+  49   2        }
+  50   1        //2s错误显示
+  51   1        if(errorCount>=20){
+  52   2          errorCount = 0;
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 2   
+
+  53   2          errorFlag = 0; //清除错误标志
+  54   2        }
+  55   1        //文本闪烁
+  56   1        textFlicker();
+  57   1      }
+  58          
+  59          //移动键盘
+  60          void moveKey(u8 key){
+  61   1        recoverText();
+  62   1        if(waveValue==0||parameterValue){
+  63   2          //前两位清零
+  64   2          nixieTubeFormat[4] = 10;
+  65   2          nixieTubeFormat[5] = 10;
+  66   2          //实现按键左右循环 两格
+  67   2          if(key==10){
+  68   3            leftRightValue--;
+  69   3          }else{
+  70   3            leftRightValue++;
+  71   3          }
+  72   2          //左边再按 回到右边
+  73   2          if(leftRightValue==-1){
+  74   3            leftRightValue = 1;
+  75   3          }else if(leftRightValue==2){ //右边再按 回到左边
+  76   3            leftRightValue = 0;
+  77   3          }
+  78   2          //获取闪烁键值
+  79   2          if(leftRightValue){
+  80   3            flickerValue = 7;
+  81   3          }else{
+  82   3            flickerValue = 6;
+  83   3          }
+  84   2        }else{
+  85   2          //实现按键左右循环 四格
+  86   2          if(key==10){
+  87   3            fourLeftRightValue--;
+  88   3          }else{
+  89   3            fourLeftRightValue++;
+  90   3          }
+  91   2          //左边再按 回到右边
+  92   2          if(fourLeftRightValue==-1){
+  93   3            fourLeftRightValue = 3;
+  94   3          }else if(fourLeftRightValue==4){ //右边再按 回到左边
+  95   3            fourLeftRightValue = 0;
+  96   3          }
+  97   2          switch(fourLeftRightValue){
+  98   3            case 0:flickerValue = 4;break;
+  99   3            case 1:flickerValue = 5;break;
+ 100   3            case 2:flickerValue = 6;break;
+ 101   3            case 3:flickerValue = 7;break;
+ 102   3          }
+ 103   2        }
+ 104   1      }
+ 105          
+ 106          //设置
+ 107          void set(){
+ 108   1        digitalToAnlog(128);
+ 109   1        setValue = ~setValue;
+ 110   1        if(setValue){
+ 111   2          TR0 = 1;
+ 112   2          //显示“S”
+ 113   2          nixieTubeFormat[0]=5;
+ 114   2        }else{
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 3   
+
+ 115   2          //显示“O”
+ 116   2          TR0 = 0;
+ 117   2          nixieTubeFormat[0]=0;
+ 118   2        }
+ 119   1      }
+ 120          
+ 121          //选择波形
+ 122          void selectWave(){
+ 123   1        //切换按钮后 要恢复原来的文本值
+ 124   1        parameterValue = 0;
+ 125   1        recoverText();
+ 126   1        //每次按切换波形后 参数始终显示“F”开始
+ 127   1        nixieTubeFormat[2] = 11;
+ 128   1        selectParameterValue = 1;
+ 129   1        flickerValue = 1;
+ 130   1        waveValue++;
+ 131   1        waveValue%=2;
+ 132   1        if(waveValue==0){
+ 133   2          //选择三角波 代号1表示
+ 134   2          nixieTubeFormat[flickerValue]=waveValue+1;
+ 135   2        }else{
+ 136   2          //选择矩形波 代号2表示
+ 137   2          nixieTubeFormat[flickerValue]=waveValue+1;
+ 138   2        }
+ 139   1        
+ 140   1      }
+ 141          
+ 142          //选择参数
+ 143          void selectParameter(){
+ 144   1        recoverText();
+ 145   1        flickerValue = 2;
+ 146   1        selectParameterValue = 1;
+ 147   1        //三角波参数
+ 148   1        if(waveValue==0){
+ 149   2          parameterValue++;
+ 150   2          parameterValue%=2;
+ 151   2          if(parameterValue==0){
+ 152   3            //显示“F”
+ 153   3            nixieTubeFormat[flickerValue]=parameterValue+11;
+ 154   3          }else{
+ 155   3            //显示“A”
+ 156   3            nixieTubeFormat[flickerValue]=parameterValue+11;
+ 157   3          }
+ 158   2        }else{ //矩形波参数
+ 159   2          parameterValue++;
+ 160   2          parameterValue%=2;
+ 161   2          if(parameterValue==0){
+ 162   3            //显示“F”
+ 163   3            nixieTubeFormat[flickerValue]=parameterValue+11;
+ 164   3          }else{
+ 165   3            //显示“d”
+ 166   3            nixieTubeFormat[flickerValue]=parameterValue+12;
+ 167   3          }
+ 168   2        }
+ 169   1      }
+ 170          
+ 171          //确认
+ 172          void confirm(){
+ 173   1        //错误检测
+ 174   1        u8 checkPassPass;
+ 175   1        checkPassPass = isError();
+ 176   1        if(checkPassPass){ //没错
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 4   
+
+ 177   2          //清零参数
+ 178   2          TR0 = 0; //关闭定时器0
+ 179   2          recoverText();
+ 180   2          flickerValue = 0;
+ 181   2          if(setValue) setValue = 0;
+ 182   2          if(selectParameterValue) selectParameterValue = 0;
+ 183   2          //显示“O”
+ 184   2          nixieTubeFormat[0]=0;
+ 185   2          //没错的话写入数据
+ 186   2          writeData();
+ 187   2        }else{ //错了
+ 188   2          errorFlag = 1;
+ 189   2        }
+ 190   1      }
+ 191          
+ 192          //写入数据
+ 193          void writeData(){
+ 194   1        //判断输入的是什么参数
+ 195   1        //矩形波
+ 196   1        if(waveValue){
+ 197   2          if(parameterValue) adjustDutyCycle();//占空比
+ 198   2          else adjustFreq();//频率
+ 199   2        }else{
+ 200   2          //三角波
+ 201   2           adjustFreq();
+ 202   2        }
+ 203   1      }
+ 204          
+ 205          //显示数码管
+ 206          void showTube(){
+ 207   1        u8 i;
+ 208   1        for(i=0;i<8;i++){
+ 209   2          weixuan(i);
+ 210   2          if(parameterValue&&i==6) duanxuan(nixieTubeFormat[i],1); //幅值挡 显示小数点
+ 211   2          else if(errorFlag) duanxuan(i,2); //错误显示
+ 212   2          else duanxuan(nixieTubeFormat[i],0); //正常显示
+ 213   2        }
+ 214   1      }
+ 215          
+ 216          //输入数字
+ 217          void inputnumber(u8 key){
+ 218   1          if(flickerValue==4){
+ 219   2            number.qian = key;
+ 220   2          }else if(flickerValue==5){
+ 221   2            number.bai = key;
+ 222   2          }else if(flickerValue==6){
+ 223   2            number.shi = key;
+ 224   2          }else{
+ 225   2            number.ge = key;
+ 226   2          }
+ 227   1      }
+ 228          
+ 229          //文本闪烁
+ 230          void textFlicker(){
+ 231   1        //300ms已到
+ 232   1        if(flickerCount>=6&&flickerValue!=0){
+ 233   2          flickerCount = 0;
+ 234   2          if(flickerChange){
+ 235   3            nixieTubeFormat[flickerValue]=14; //灭
+ 236   3          }else if(flickerChange==0){
+ 237   3            //恢复原来的值
+ 238   3            recoverText();
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 5   
+
+ 239   3          }
+ 240   2          flickerChange = !flickerChange; //仿真bug 这里不能用~取反 要用!非
+ 241   2        }
+ 242   1      }
+ 243          
+ 244          //切换按钮时，恢复文本，防止显示错误（如黑屏）
+ 245          void recoverText(){
+ 246   1        switch(flickerValue){
+ 247   2          case 1:nixieTubeFormat[flickerValue]=waveValue+1;break;
+ 248   2          case 2:
+ 249   2            if(waveValue){
+ 250   3              if(parameterValue){
+ 251   4                nixieTubeFormat[flickerValue]=parameterValue+12;
+ 252   4              }else nixieTubeFormat[flickerValue]=parameterValue+11;
+ 253   3            }else{
+ 254   3              nixieTubeFormat[flickerValue]=parameterValue+11;
+ 255   3            }break;
+ 256   2          case 4:nixieTubeFormat[flickerValue]=number.qian;break;
+ 257   2          case 5:nixieTubeFormat[flickerValue]=number.bai;break;
+ 258   2          case 6:nixieTubeFormat[flickerValue]=number.shi;break;
+ 259   2          case 7:nixieTubeFormat[flickerValue]=number.ge;break;
+ 260   2        }
+ 261   1      }
+ 262          
+ 263          //检查是否错误输入
+ 264          u8 isError(){
+ 265   1        u8 checkPass; //1出错 0无错
+ 266   1        if(waveValue==-1){
+ 267   2          checkPass = 1;
+ 268   2        }else if(waveValue==0){//三角波频率 赋值 数值错误检测 由于都是10-50 所以一起判断�
+             -�可
+ 269   2          if(number.shi>=1&&number.shi<5) checkPass = 1;
+ 270   2          else if(number.shi==5&&number.ge==0) checkPass = 1;
+ 271   2          else checkPass = 0;
+ 272   2        }else if(waveValue&&parameterValue==0){ //矩形波频率数值错误检测
+ 273   2          if(number.qian<1) checkPass = 1;
+ 274   2          else if(number.qian==1&&number.bai==0&&number.shi==0&&number.ge==0) checkPass = 1;
+ 275   2          else checkPass = 0;
+ 276   2        }else{ //矩形波占空比数值错误检测
+ 277   2          if(number.shi>=2&&number.shi<8) checkPass = 1;
+ 278   2          else if(number.shi==8&&number.ge==0) checkPass = 1;
+ 279   2          else checkPass = 0;
+ 280   2        }
+ 281   1        return checkPass;
+ 282   1      }
+ 283          
+ 284          //闪烁定时器初始化
+ 285          void flickerTimerInit(){
+ 286   1        //定时器0 16位计数
+ 287   1        TMOD = 0x01;
+ 288   1        //50ms溢出
+ 289   1        TH0 = (65536-50000)/256;
+ 290   1        TL0 = (65536-50000)%256;
+ 291   1        EA = 1;
+ 292   1        ET0 = 1;
+ 293   1        TR0 = 0;
+ 294   1      }
+ 295          
+ 296          //闪烁中断函数
+ 297          void interruptFlicker() interrupt 1 using 0{
+ 298   1        TH0 = (65536-50000)/256;
+ 299   1        TL0 = (65536-50000)%256;
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 6   
+
+ 300   1        flickerCount++;
+ 301   1        if(errorFlag) errorCount++;
+ 302   1      }
+ 303          
+ 304          //算法部分参数:
+ 305          static u8 voltage = 0; //电压
+ 306          static u8 changeVoltage = 0;//变化的电压
+ 307          static u16 period = 0;//一个采样点的周期
+ 308          static u8 samplingVoltage = 0; //每一份采样电压
+ 309          static u8 rise = 0; //上升或者下降
+ 310          static u16 highPeriod = 0;//高电平占用时间
+ 311          static u16 lowPeriod = 0;//低电平占用时间
+ 312          /**
+ 313          *算法部分:
+ 314          */
+ 315          //频率定时器初始化
+ 316          void freqTimerInit(){
+ 317   1        //定时器1 16位重载
+ 318   1        TMOD = 0x10;
+ 319   1        ET1 = 1;
+ 320   1        TR1 = 0;
+ 321   1      }
+ 322          
+ 323          void interruptFreq() interrupt 3 using 0{
+ 324   1        if(waveValue==0){
+ 325   2          TH1 = (65536-period)/256;
+ 326   2          TL1 = (65536-period)%256;
+ 327   2          //只能在中断函数中写入数据了 因为只有它在循环
+ 328   2          //上半周期 单调递增
+ 329   2          if(rise){
+ 330   3            changeVoltage+=samplingVoltage;
+ 331   3            if(changeVoltage>=voltage) rise = 0; //切换成下降
+ 332   3          }else{
+ 333   3            changeVoltage-=samplingVoltage; 
+ 334   3            if(changeVoltage<=0) rise = 1; //切换成上升
+ 335   3          }
+ 336   2          //写入数字量
+ 337   2          digitalToAnlog(changeVoltage);
+ 338   2        }else{
+ 339   2          if(rise){
+ 340   3            TH1 = (65536-highPeriod)/256;
+ 341   3            TL1 = (65536-highPeriod)%256;
+ 342   3            rise = 0;
+ 343   3            //写入数字量
+ 344   3            digitalToAnlog(255);
+ 345   3          }else{
+ 346   3            TH1 = (65536-lowPeriod)/256;
+ 347   3            TL1 = (65536-lowPeriod)%256;
+ 348   3            rise = 1;
+ 349   3            //写入数字量
+ 350   3            digitalToAnlog(0);
+ 351   3          }
+ 352   2        }
+ 353   1      }
+ 354          
+ 355          //调节频率
+ 356          void adjustFreq(){ 
+ 357   1        if(waveValue==0) //三角波
+ 358   1        {
+ 359   2          /**F=10hz-50hz T=100000us-20000us
+ 360   2          *三角波 采样点32个一周期 所以T/32; T=3125us-625us; （精度极差）1hz周期31250us
+ 361   2          *电压也要分成32份
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 7   
+
+ 362   2          */
+ 363   2          float freq;
+ 364   2          freq = (float)(number.shi*10+number.ge);
+ 365   2          freq = 31250/freq;
+ 366   2          //四舍五入
+ 367   2          if((freq-(u16)freq)>=0.5) period = (u16)freq+1;
+ 368   2          else period = (u16)freq+1; //得到一个采样点的周期
+ 369   2          //赋值并启动定时器1
+ 370   2          adjustVoltage(); //得到电压数字量
+ 371   2          TH1 = (65536-period)/256;
+ 372   2          TL1 = (65536-period)%256;
+ 373   2          TR1 = 1;
+ 374   2          rise = 1;//上升
+ 375   2        }else{ //矩形波
+ 376   2          /**
+ 377   2          *F=20HZ-1000HZ T=50000us-1000us
+ 378   2          */
+ 379   2          float freq;
+ 380   2          freq = (float)(number.qian*1000+number.bai*100+number.shi*10+number.ge);
+ 381   2          freq = 1000000/freq;
+ 382   2          //四舍五入
+ 383   2          if((freq-(u16)freq)>=0.5) period = (u16)freq+1;
+ 384   2          else period = (u16)freq+1; //一个矩形波的周期 高低电平为一周期
+ 385   2          TH1 = (65536-period)/256;
+ 386   2          TL1 = (65536-period)%256;
+ 387   2          TR1 = 1;
+ 388   2        }
+ 389   1      }
+ 390          //调节电压
+ 391          void adjustVoltage(){ //1.0v-5.0v
+ 392   1        //数据处理 
+ 393   1        float temp;
+ 394   1        temp = (float)number.ge/10+number.shi;
+ 395   1        temp = temp*255/5;
+ 396   1        //四舍五入
+ 397   1        if((temp-(u8)temp)>=0.5) voltage = (u8)temp+1;
+ 398   1        else voltage = (u8)temp;
+ 399   1        temp = temp/16;  //每一份采样数字量 
+ 400   1        if((temp-(u8)temp)>=0.5) samplingVoltage = (u8)temp+1;
+ 401   1        else samplingVoltage = (u8)temp;
+ 402   1      }
+ 403          
+ 404          //调节占空比
+ 405          void adjustDutyCycle(){
+ 406   1        //20%-80%
+ 407   1        float temp;
+ 408   1        temp = (float)(number.shi*10+number.ge)/100;
+ 409   1        //求出高电平占用时间
+ 410   1        temp = temp*(float)period;
+ 411   1        if((temp-(u16)temp)>=0.5)  highPeriod = (u16)temp+1;
+ 412   1        else highPeriod = (u16)temp;
+ 413   1        lowPeriod = period - highPeriod;
+ 414   1        TH1 = (65536-highPeriod)/256;
+ 415   1        TL1 = (65536-highPeriod)%256;
+ 416   1        TR1 = 1;
+ 417   1        rise = 0;
+ 418   1        //写入数字量
+ 419   1        digitalToAnlog(255);
+ 420   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.54   SIGNALGENERATOR                                                       05/29/2022 15:41:59 PAGE 8   
+
+   CODE SIZE        =   2000    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     33      15
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,48 @@
+C51 COMPILER V9.54   PCF8591                                                               06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE PCF8591
+OBJECT MODULE PLACED IN ..\OBJ\pcf8591.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE ..\HARDWARE\PCF8591\pcf8591.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\USER
+                    -;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG PRINT(.
+                    -\Listings\pcf8591.lst) TABS(2) OBJECT(..\OBJ\pcf8591.obj)
+
+line level    source
+
+   1          #include "pcf8591.h"
+   2          //数模转换 
+   3          /**
+   4          *电压转换公式：Vout = Vin*value/255   Vin=5V
+   5          得出value = 255*Vout/Vin;
+   6          */
+   7          void digitalToAnlog(u8 value){
+   8   1        //主机向从机写入地址
+   9   1        IIC_Start();            
+  10   1        IIC_SendByte(0x90);
+  11   1        IIC_ReceiveAck();
+  12   1        //选择模拟输出      
+  13   1        IIC_SendByte(0x40);
+  14   1        IIC_ReceiveAck();
+  15   1        //发送数字量
+  16   1        IIC_SendByte(value);
+  17   1        IIC_SendAck(1);
+  18   1        IIC_Stop();
+  19   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     34    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

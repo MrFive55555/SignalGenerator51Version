@@ -1,0 +1,73 @@
+C51 COMPILER V9.54   NIXIETUBE                                                             06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE NIXIETUBE
+OBJECT MODULE PLACED IN ..\OBJ\nixieTube.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE ..\HARDWARE\NixieTube\nixieTube.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\
+                    -USER;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG PRI
+                    -NT(.\Listings\nixieTube.lst) TABS(2) OBJECT(..\OBJ\nixieTube.obj)
+
+line level    source
+
+   1          #include "nixieTube.h"
+   2          /**
+   3          *双片74LS573数码管
+   4          */
+   5          u8 code tubeNum[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,0x40,0x71,0x77,0x5e,0x00}; //共阴�
+             -�段码 10:- 11:F 12:A 13:d 14:灭
+   6          u8 code errorNum[]={0x79,0x77,0x77,0x3f,0x77,0x00,0x00,0x00}; //error
+   7          void Delay_nixieTube(u16 time)    //@12.000MHz
+   8          {
+   9   1        u16 x;
+  10   1        for(x=time;x>0;x--);
+  11   1      }
+  12          
+  13          void weixuan(u8 place){
+  14   1        //选择显示位置
+  15   1        //位选 低电平有效
+  16   1        LE2 = 1;
+  17   1        P0 = ~(0x01<<place); //改进版
+  18   1        //下降沿锁存
+  19   1        LE2 = 0;
+  20   1        //低电平使能输出
+  21   1        OE = 0;
+  22   1      }
+  23          void duanxuan(u8 num,u8 dot){
+  24   1        //选择显示数字
+  25   1        //段选
+  26   1        LE1 = 1;
+  27   1        P0 = 0x00;
+  28   1        LE1 = 0;
+  29   1        
+  30   1        LE1 = 1;
+  31   1        if(dot==1){ //显示小数点
+  32   2          P0 = tubeNum[num];
+  33   2          P0_7 = 1;
+  34   2        }else if(dot==2) P0 = errorNum[num]; //显示错误提示
+  35   1        else P0 = tubeNum[num]; //正常显示
+  36   1        //清除段选
+  37   1        //Delay_nixieTube(100);
+  38   1        //P0 = 0x00;
+  39   1        LE1 = 0;
+  40   1        OE = 0;
+  41   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     81    ----
+   CONSTANT SIZE    =     23    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   NIXIETUBE                                                             06/17/2022 10:09:22 PAGE 2   
+
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

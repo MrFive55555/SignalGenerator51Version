@@ -1,0 +1,134 @@
+C51 COMPILER V9.54   IICFORAT                                                              06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE IICFORAT
+OBJECT MODULE PLACED IN ..\OBJ\IICForAT.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE ..\HARDWARE\AT24C02\IICForAT.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\USE
+                    -R;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG PRINT(
+                    -.\Listings\IICForAT.lst) TABS(2) OBJECT(..\OBJ\IICForAT.obj)
+
+line level    source
+
+   1          #include "IICForAT.h" 
+   2          sbit IIC_SCL = P3^6;
+   3          sbit IIC_SDA = P3^4;
+   4          /**
+   5          *此IIC通信协议加入延时 因为at24c02对速度要求不高 且必须加延时 才能进行通信
+   6          而pcf8591的IIC不要加延时 否则运行速度更慢了……
+   7          */
+   8          /**
+   9          *51单片机没有IIC接口 所以需要模拟IIC时序
+  10          */
+  11          //OLED 时钟线和数据线
+  12          /**
+  13          *注意拉高电平需要的时间
+  14          */
+  15          //1.起始信号
+  16          void IIC_Start_AT(){
+  17   1        //IIC_SCL高电平期间，IIC_SDA由高到低为起始信号
+  18   1        IIC_SDA = 1;
+  19   1        Delay10us();
+  20   1        IIC_SCL = 1;
+  21   1        Delay10us();
+  22   1        IIC_SDA = 0;
+  23   1        Delay10us();
+  24   1        IIC_SCL = 0;
+  25   1        Delay10us();
+  26   1      }
+  27          //2.终止信号
+  28          void IIC_Stop_AT(){
+  29   1        //IIC_SCL高电平期间，IIC_SDA由低到高为终止信号
+  30   1        IIC_SCL = 0;
+  31   1        Delay10us();
+  32   1        IIC_SDA = 0;
+  33   1        Delay10us();
+  34   1        IIC_SCL = 1;
+  35   1        Delay10us();
+  36   1        IIC_SDA = 1;
+  37   1        Delay10us();
+  38   1      }
+  39          //3.发送数据
+  40          void IIC_SendByte_AT(u8 Byte){
+  41   1        u8 i;
+  42   1        for(i=0;i<8;i++){
+  43   2          //从最高位依次赋值给IIC_SDA数据线上
+  44   2          IIC_SDA = Byte&(0x80>>i); 
+  45   2          //IIC_SCL高电平时 IIC_SDA才发送
+  46   2          Delay10us();
+  47   2          IIC_SCL = 1;
+  48   2          Delay10us();
+  49   2          IIC_SCL = 0;
+  50   2          Delay10us();
+  51   2        }
+  52   1      }
+  53          //4.接收数据
+C51 COMPILER V9.54   IICFORAT                                                              06/17/2022 10:09:22 PAGE 2   
+
+  54          u8 IIC_ReceiveByte_AT(){
+  55   1        u8 i,Byte=0x00;
+  56   1        //拉高电平 释放线权
+  57   1        IIC_SDA = 1;
+  58   1        Delay10us();
+  59   1        for(i=0;i<8;i++){
+  60   2          //IIC_SCL和IIC_SDA均为高电平释放线权
+  61   2          IIC_SCL = 1;
+  62   2          Delay10us();
+  63   2          if(IIC_SDA){
+  64   3            Byte|=(0x80>>i);
+  65   3          }
+  66   2          IIC_SCL = 0;
+  67   2          Delay10us();
+  68   2        }
+  69   1        return Byte;
+  70   1      }
+  71          //5.发送应答位
+  72          void IIC_SendAck_AT(u8 ack){
+  73   1        IIC_SDA = ack;
+  74   1        Delay10us();
+  75   1        IIC_SCL = 1;
+  76   1        Delay10us();
+  77   1        IIC_SCL = 0;
+  78   1        Delay10us();
+  79   1      }
+  80          //6.接收应答
+  81          u8 IIC_ReceiveAck_AT(){
+  82   1        u8 ack;
+  83   1        //SDA拉高 释放线权给从机
+  84   1        IIC_SDA = 1;
+  85   1        Delay10us();
+  86   1        IIC_SCL = 1;
+  87   1        Delay10us();
+  88   1        ack = IIC_SDA;
+  89   1        Delay10us();
+  90   1        IIC_SCL = 0;
+  91   1        Delay10us();
+  92   1        return ack;
+  93   1      }
+  94          void Delay10us()    //@12.000MHz
+  95          {
+  96   1        unsigned char i;
+  97   1      
+  98   1        _nop_();
+  99   1        i = 2;
+ 100   1        while (--i);
+ 101   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    195    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+C51 COMPILER V9.54   IICFORAT                                                              06/17/2022 10:09:22 PAGE 3   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

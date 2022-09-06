@@ -1,0 +1,78 @@
+C51 COMPILER V9.54   AT24C02                                                               06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE AT24C02
+OBJECT MODULE PLACED IN ..\OBJ\at24c02.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE ..\HARDWARE\AT24C02\at24c02.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\USER
+                    -;..\HARDWARE\AT24C02;..\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG PRINT(.
+                    -\Listings\at24c02.lst) TABS(2) OBJECT(..\OBJ\at24c02.obj)
+
+line level    source
+
+   1          #include "at24c02.h"
+   2          #include "IICForAT.h"
+   3          /**
+   4            * @brief  AT24C02写入一个字节
+   5            * @param  page 要写入字节的地址
+   6            * @param  Data 要写入的数据
+   7            * @retval 无
+   8            */
+   9          void AT24C02WriteByte(u8 page,Data)
+  10          {
+  11   1        //连接设备
+  12   1        IIC_Start_AT();
+  13   1        IIC_SendByte_AT(AT24C02_ADDRESS);
+  14   1        IIC_ReceiveAck_AT();
+  15   1        //发送页面 0-255页 255字节
+  16   1        IIC_SendByte_AT(page);
+  17   1        IIC_ReceiveAck_AT();
+  18   1        //发送数据
+  19   1        IIC_SendByte_AT(Data);
+  20   1        IIC_ReceiveAck_AT();
+  21   1        IIC_Stop_AT();
+  22   1      }
+  23          
+  24          /**
+  25            * @brief  AT24C02读取一个字节
+  26            * @param  page 要读出字节的地址
+  27            * @retval 读出的数据
+  28            */
+  29          u8 AT24C02ReadByte(u8 page)
+  30          {
+  31   1        u8 Data;
+  32   1        //连接设备
+  33   1        IIC_Start_AT();
+  34   1        IIC_SendByte_AT(AT24C02_ADDRESS);
+  35   1        IIC_ReceiveAck_AT();
+  36   1        IIC_SendByte_AT(page);
+  37   1        IIC_ReceiveAck_AT();
+  38   1        //读取设备
+  39   1        IIC_Start_AT();
+  40   1        IIC_SendByte_AT(AT24C02_ADDRESS|0x01);
+  41   1        IIC_ReceiveAck_AT();
+  42   1        //读取数据
+  43   1        Data=IIC_ReceiveByte_AT();
+  44   1        IIC_SendAck_AT(1);
+  45   1        IIC_Stop_AT();
+  46   1        return Data;
+  47   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     84    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   AT24C02                                                               06/17/2022 10:09:22 PAGE 2   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

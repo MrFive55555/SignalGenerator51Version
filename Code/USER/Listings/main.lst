@@ -1,0 +1,45 @@
+C51 COMPILER V9.54   MAIN                                                                  06/17/2022 10:09:22 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN ..\OBJ\main.obj
+COMPILER INVOKED BY: F:\Keil5\C51\BIN\C51.EXE main.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(..\USER;..\HARDWARE\AT24C02;..
+                    -\HARDWARE\MatrixKeyboard;..\HARDWARE\NixieTube;..\HARDWARE\PCF8591;..\HARDWARE\IIC) DEBUG PRINT(.\Listings\main.lst) TAB
+                    -S(2) OBJECT(..\OBJ\main.obj)
+
+line level    source
+
+   1          #include "SignalGeneratorUI.h"
+   2          void main(){
+   3   1        //恢复数据
+   4   1        recoverData();
+   5   1        //刷新数值显示
+   6   1        recoverNumber();
+   7   1        //进入设置状态
+   8   1        set();
+   9   1        selectWave();
+  10   1        //定时器初始化
+  11   1        TimerInit();
+  12   1        while(1){
+  13   2          //键盘扫描
+  14   2          keyboard();
+  15   2        }
+  16   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     20    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
